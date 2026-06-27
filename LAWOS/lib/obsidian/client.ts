@@ -12,7 +12,7 @@
  *   updateFile, createFile, ping
  */
 import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from "undici";
-import { obsidianConfig, isObsidianConfigured, isExcludedPath } from "./config";
+import { obsidianConfig, isObsidianConfigured, isExcludedPath, TAG_FOLDERS } from "./config";
 
 export interface ObsidianStat {
   ctime: number;
@@ -195,6 +195,27 @@ export async function getNotes(folder: string, recursive = true): Promise<Obsidi
   return resolved;
 }
 
+/** Recursively collect markdown file paths under a folder, WITHOUT fetching them. */
+export async function listFiles(folder: string, recursive = true): Promise<string[]> {
+  const entries = await getFolder(folder);
+  const files: string[] = [];
+  const subfolders: string[] = [];
+  for (const entry of entries) {
+    const name = entry.replace(/\/$/, "").split("/").pop() ?? "";
+    if (name.startsWith(".")) continue;
+    if (entry.endsWith("/")) {
+      if (recursive) subfolders.push(entry.replace(/\/$/, ""));
+    } else if (entry.endsWith(".md")) {
+      files.push(entry);
+    }
+  }
+  if (recursive && subfolders.length) {
+    const nested = await Promise.all(subfolders.map((f) => listFiles(f, true)));
+    for (const g of nested) files.push(...g);
+  }
+  return files;
+}
+
 /** Filenames (vault-relative paths) of notes carrying `#tag` anywhere. */
 export async function searchByTag(tag: string): Promise<string[]> {
   const res = await api(`/search/`, {
@@ -231,7 +252,15 @@ export function isAggregatorNote(n: ObsidianNote): boolean {
  * "all subjects", etc. — only real records, never the Dataview dashboards.
  */
 export async function getNotesByTag(tag: string): Promise<ObsidianNote[]> {
-  const paths = (await searchByTag(tag)).filter((p) => !isExcludedPath(p));
+  // Union the search index with a direct scan of the tag's folders, so records
+  // created via the UI appear immediately even before Obsidian re-indexes.
+  const [searched, ...folderLists] = await Promise.all([
+    searchByTag(tag),
+    ...(TAG_FOLDERS[tag] ?? []).map((f) => listFiles(f)),
+  ]);
+  const paths = Array.from(new Set([...searched, ...folderLists.flat()])).filter(
+    (p) => !isExcludedPath(p)
+  );
   const notes = await Promise.all(paths.map((p) => getNote(p)));
   return notes.filter((n): n is ObsidianNote => {
     if (!n) return false;
@@ -256,4 +285,16 @@ export async function updateFile(path: string, content: string): Promise<boolean
 /** Alias of updateFile — PUT creates the note if it doesn't exist. */
 export async function createFile(path: string, content: string): Promise<boolean> {
   return updateFile(path, content);
+}
+
+/** Delete a note. Returns success (also true if it was already gone). */
+export async function deleteFile(path: string): Promise<boolean> {
+  const res = await api(`/vault/${encodePath(path)}`, { method: "DELETE" });
+  return !!res && (res.ok || res.status === 404);
+}
+
+/** True if a note exists at the given path. */
+export async function fileExists(path: string): Promise<boolean> {
+  const res = await api(`/vault/${encodePath(path)}`, { headers: { Accept: "text/markdown" } });
+  return !!res && res.ok;
 }

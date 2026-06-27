@@ -4,6 +4,8 @@ import * as React from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { CommandMenuProvider } from "./command-menu";
+import { LiveRefresh } from "./live-refresh";
+import { QuickCaptureFab } from "@/components/quick-capture/quick-capture-fab";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = React.useState(false);
@@ -23,6 +25,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </div>
+        <QuickCaptureFab />
+        <LiveRefresh />
       </div>
     </CommandMenuProvider>
   );

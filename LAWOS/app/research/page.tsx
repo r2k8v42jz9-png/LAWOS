@@ -9,6 +9,9 @@ import { DeadlinesList } from "@/components/dashboard/deadlines-list";
 import { StatusBadge, PriorityBadge } from "@/components/ui/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives";
+import { NewEntityMenu } from "@/components/entities/new-button";
+import { RecordActions } from "@/components/entities/record-actions";
+import { EntityEmptyState } from "@/components/entities/empty-state";
 
 export const metadata = { title: "Research" };
 
@@ -32,21 +35,39 @@ export default async function ResearchPage() {
         eyebrow="Knowledge"
         title="Research"
         description="Active papers, the idea backlog, and every source that supports them."
+        actions={
+          <NewEntityMenu
+            items={[
+              { entityKey: "research", label: "New Research" },
+              { entityKey: "evidence", label: "New Evidence" },
+              { entityKey: "case", label: "New Case" },
+            ]}
+          />
+        }
       />
 
       <StatGrid stats={data.stats} />
 
       {/* Projects */}
       <Panel title="Research projects" icon={FlaskConical} description={`${data.projects.length} tracked`}>
+        {data.projects.length === 0 ? (
+          <EntityEmptyState
+            entityKey="research"
+            hint="Start a research project — saved to 06 Research/Projects in your vault."
+          />
+        ) : (
         <Stagger className="grid gap-3 lg:grid-cols-2">
           {data.projects.map((p) => (
             <StaggerItem key={p.id}>
-              <HoverLift className="flex h-full flex-col rounded-xl border border-hairline bg-surface-2/40 p-5">
+              <HoverLift data-record-card className="flex h-full flex-col rounded-xl border border-hairline bg-surface-2/40 p-5">
                 <div className="flex items-start justify-between gap-3">
                   <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
                     {p.field}
                   </span>
-                  <StatusBadge status={p.status} />
+                  <div className="flex items-center gap-1">
+                    <StatusBadge status={p.status} />
+                    <RecordActions entityKey="research" path={p.id} name={p.title} />
+                  </div>
                 </div>
                 <p className="mt-3 text-sm font-semibold text-foreground">{p.title}</p>
                 {p.summary && <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{p.summary}</p>}
@@ -64,6 +85,7 @@ export default async function ResearchPage() {
             </StaggerItem>
           ))}
         </Stagger>
+        )}
       </Panel>
 
       <div className="grid gap-3 lg:grid-cols-3">

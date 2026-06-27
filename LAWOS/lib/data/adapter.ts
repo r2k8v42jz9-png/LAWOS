@@ -11,6 +11,7 @@
  */
 import type {
   AnalyticsData,
+  CalendarEvent,
   CareerData,
   DashboardData,
   FoundationData,
@@ -19,6 +20,7 @@ import type {
   ReadingData,
   ResearchData,
   ScholarshipsData,
+  SearchRecord,
   SettingsData,
 } from "./types";
 
@@ -36,4 +38,9 @@ export interface DataAdapter {
   getCareerData(): Promise<CareerData>;
   getAnalyticsData(): Promise<AnalyticsData>;
   getSettings(): Promise<SettingsData>;
+
+  /** Flat index of every record in the vault, for global search. */
+  getSearchIndex(): Promise<SearchRecord[]>;
+  /** Dated records across all areas, for the unified calendar. */
+  getCalendarData(): Promise<CalendarEvent[]>;
 }

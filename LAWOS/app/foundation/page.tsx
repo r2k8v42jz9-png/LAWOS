@@ -8,6 +8,9 @@ import { Timeline } from "@/components/shared/timeline";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives";
+import { NewEntityButton } from "@/components/entities/new-button";
+import { RecordActions } from "@/components/entities/record-actions";
+import { EntityEmptyState } from "@/components/entities/empty-state";
 
 export const metadata = { title: "Foundation" };
 
@@ -23,11 +26,7 @@ export default async function FoundationPage() {
         eyebrow="Academics"
         title="Foundation"
         description={`${data.semester.name} — building the bedrock of legal study.`}
-        actions={
-          <Button size="sm" variant="secondary">
-            <Plus className="size-4" /> Add subject
-          </Button>
-        }
+        actions={<NewEntityButton entityKey="subject" />}
       />
 
       {/* Semester overview */}
@@ -60,33 +59,45 @@ export default async function FoundationPage() {
       </Panel>
 
       {/* Subjects */}
-      <Panel title="Current subjects" icon={BookMarked} description={`${data.subjects.length} active modules`}>
-        <Stagger className="grid gap-3 md:grid-cols-2">
-          {data.subjects.map((s) => (
-            <StaggerItem key={s.id}>
-              <HoverLift className="rounded-xl border border-hairline bg-surface-2/40 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground ring-1 ring-hairline">
-                        {s.code}
-                      </span>
-                      {s.grade && <span className="text-xs font-semibold text-emerald-400">{s.grade}</span>}
+      <Panel
+        title="Current subjects"
+        icon={BookMarked}
+        description={`${data.subjects.length} active modules`}
+        action={data.subjects.length > 0 ? <NewEntityButton entityKey="subject" variant="secondary" /> : undefined}
+      >
+        {data.subjects.length === 0 ? (
+          <EntityEmptyState entityKey="subject" hint="Add your Foundation subjects — saved to 01 Foundation/Subjects in your vault." />
+        ) : (
+          <Stagger className="grid gap-3 md:grid-cols-2">
+            {data.subjects.map((s) => (
+              <StaggerItem key={s.id}>
+                <HoverLift data-record-card className="rounded-xl border border-hairline bg-surface-2/40 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground ring-1 ring-hairline">
+                          {s.code}
+                        </span>
+                        {s.grade && <span className="text-xs font-semibold text-emerald-400">{s.grade}</span>}
+                      </div>
+                      <p className="mt-1.5 truncate text-sm font-semibold text-foreground">{s.name}</p>
+                      {s.instructor && <p className="truncate text-xs text-muted-foreground">{s.instructor}</p>}
                     </div>
-                    <p className="mt-1.5 truncate text-sm font-semibold text-foreground">{s.name}</p>
-                    {s.instructor && <p className="truncate text-xs text-muted-foreground">{s.instructor}</p>}
+                    <div className="flex items-center gap-1">
+                      <StatusBadge status={s.status} />
+                      <RecordActions entityKey="subject" path={s.id} name={s.name} />
+                    </div>
                   </div>
-                  <StatusBadge status={s.status} />
-                </div>
-                <div className="mt-3.5 flex items-center gap-3">
-                  <MiniBar value={s.progress} />
-                  <span className="shrink-0 text-xs font-medium text-foreground">{s.progress}%</span>
-                </div>
-                <p className="mt-2 text-[11px] text-muted-foreground">{s.credits} credits</p>
-              </HoverLift>
-            </StaggerItem>
-          ))}
-        </Stagger>
+                  <div className="mt-3.5 flex items-center gap-3">
+                    <MiniBar value={s.progress} />
+                    <span className="shrink-0 text-xs font-medium text-foreground">{s.progress}%</span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">{s.credits} credits</p>
+                </HoverLift>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        )}
       </Panel>
 
       <div className="grid gap-3 lg:grid-cols-2">

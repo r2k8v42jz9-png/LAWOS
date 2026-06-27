@@ -14,15 +14,19 @@ import type {
   AnalyticsData,
   AreaKey,
   AreaProgress,
+  CalendarEvent,
   CareerData,
   DashboardData,
   Deadline,
   FoundationData,
+  Internship,
   LLBData,
   LegalEnglishData,
   ReadingData,
   ResearchData,
+  Scholarship,
   ScholarshipsData,
+  SearchRecord,
   SeriesPoint,
   SettingsData,
   Stat,
@@ -31,6 +35,8 @@ import type {
 } from "@/lib/data/types";
 import { getNote, getNotesByTag, ping, type ObsidianNote } from "./client";
 import { obsidianConfig } from "./config";
+import { areaFromPath, classify } from "./classify";
+import { buildSearchIndex } from "./search";
 import {
   mapAssignment,
   mapBook,
@@ -44,6 +50,7 @@ import {
   mapSource,
   mapSubject,
   mapUniversity,
+  mapVocab,
 } from "./mappers";
 import { str, num, numOpt, body } from "./frontmatter";
 import { daysUntil } from "@/lib/utils";
@@ -54,17 +61,6 @@ import { daysUntil } from "@/lib/utils";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function areaFromPath(path: string): AreaKey {
-  if (path.startsWith("01 Foundation")) return "foundation";
-  if (path.startsWith("02 LLB")) return "llb";
-  if (path.startsWith("03 Legal English")) return "legal-english";
-  if (path.startsWith("05 Library")) return "reading";
-  if (path.startsWith("06 Research")) return "research";
-  if (path.startsWith("07 Portfolio") || path.startsWith("09 Career")) return "career";
-  if (path.startsWith("08 Scholarships")) return "scholarships";
-  return "general";
-}
 
 function kindFromTags(tags: string[]): ActivityKind {
   if (tags.includes("book")) return "reading";
@@ -147,13 +143,20 @@ export const obsidianAdapter: DataAdapter = {
 
   /* ---------- Foundation ---------- */
   async getFoundationData(): Promise<FoundationData> {
-    const [subjectNotes, assignmentNotes, examNotes, projectNotes, milestoneNotes] = await Promise.all([
-      getNotesByTag("subject"),
-      getNotesByTag("assignment"),
-      getNotesByTag("exam"),
-      getNotesByTag("project"),
-      getNotesByTag("milestone"),
-    ]);
+    const inFoundation = (n: ObsidianNote) => n.path.startsWith("01 Foundation");
+    const [subjectNotesAll, assignmentNotesAll, examNotesAll, projectNotesAll, milestoneNotesAll] =
+      await Promise.all([
+        getNotesByTag("subject"),
+        getNotesByTag("assignment"),
+        getNotesByTag("exam"),
+        getNotesByTag("project"),
+        getNotesByTag("milestone"),
+      ]);
+    const subjectNotes = subjectNotesAll.filter(inFoundation);
+    const assignmentNotes = assignmentNotesAll.filter(inFoundation);
+    const examNotes = examNotesAll.filter(inFoundation);
+    const projectNotes = projectNotesAll.filter(inFoundation);
+    const milestoneNotes = milestoneNotesAll.filter(inFoundation);
 
     const subjects = subjectNotes.map(mapSubject);
     const assignments = assignmentNotes.map(mapAssignment);
@@ -189,20 +192,26 @@ export const obsidianAdapter: DataAdapter = {
 
   /* ---------- LLB ---------- */
   async getLLBData(): Promise<LLBData> {
-    const [subjectNotes, universityNotes, milestoneNotes] = await Promise.all([
-      getNotesByTag("subject"),
-      getNotesByTag("university"),
-      getNotesByTag("milestone"),
-    ]);
+    const inLLB = (n: ObsidianNote) => n.path.startsWith("02 LLB");
+    const [subjectNotes, universityNotes, milestoneNotes, assignmentNotes, examNotes] =
+      await Promise.all([
+        getNotesByTag("subject"),
+        getNotesByTag("university"),
+        getNotesByTag("milestone"),
+        getNotesByTag("assignment"),
+        getNotesByTag("exam"),
+      ]);
 
     // LLB-specific modules/milestones live under the "02 LLB" folder.
-    const modules = subjectNotes.filter((n) => n.path.startsWith("02 LLB")).map(mapSubject);
+    const modules = subjectNotes.filter(inLLB).map(mapSubject);
     const universities = universityNotes.map(mapUniversity);
+    const assignments = assignmentNotes.filter(inLLB).map(mapAssignment);
+    const exams = examNotes.filter(inLLB).map(mapExam);
     const creditsEarned = modules.filter((m) => m.status === "done").reduce((s, m) => s + m.credits, 0);
     const creditsTotal = modules.reduce((s, m) => s + m.credits, 0);
 
     const timeline = milestoneNotes
-      .filter((n) => n.path.startsWith("02 LLB"))
+      .filter(inLLB)
       .map(mapMilestone)
       .filter((t) => t.date)
       .sort((a, b) => daysUntil(a.date) - daysUntil(b.date));
@@ -215,16 +224,17 @@ export const obsidianAdapter: DataAdapter = {
       creditsTotal,
       modules,
       universities,
-      assignments: [],
-      exams: [],
+      assignments,
+      exams,
       timeline,
     };
   },
 
   /* ---------- Legal English ---------- */
   async getLegalEnglishData(): Promise<LegalEnglishData> {
-    const [mockNotes, dash] = await Promise.all([
+    const [mockNotes, vocabNotes, dash] = await Promise.all([
       getNotesByTag("ielts-mock"),
+      getNotesByTag("vocabulary"),
       getNote("03 Legal English/IELTS Dashboard.md"),
     ]);
     const dfm = dash?.frontmatter ?? {};
@@ -272,10 +282,14 @@ export const obsidianAdapter: DataAdapter = {
       { id: "speaking", label: "Speaking", value: bandOf("Speaking") ? bandOf("Speaking").toFixed(1) : "—", progress: skills.speaking },
     ];
 
+    const vocabulary = vocabNotes
+      .map(mapVocab)
+      .sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1));
+
     return {
       ielts: { overall, target: targetOverall, bands },
       progressSeries,
-      vocabulary: [],
+      vocabulary,
       mockTests: mocks,
       stats,
       skills,
@@ -465,16 +479,19 @@ export const obsidianAdapter: DataAdapter = {
 
   /* ---------- Analytics ---------- */
   async getAnalyticsData(): Promise<AnalyticsData> {
-    const [subjects, books, research, papers, ielts, scholarships, evidence] = await Promise.all([
-      getNotesByTag("subject"),
-      getNotesByTag("book"),
-      getNotesByTag("research-project"),
-      getNotesByTag("research-paper"),
-      getNotesByTag("ielts-mock"),
-      getNotesByTag("scholarship"),
-      getNotesByTag("evidence"),
-    ]);
-    const all = [...subjects, ...books, ...research, ...papers, ...ielts, ...scholarships, ...evidence];
+    const [subjects, books, research, papers, ielts, scholarships, evidence, vocab, assignments] =
+      await Promise.all([
+        getNotesByTag("subject"),
+        getNotesByTag("book"),
+        getNotesByTag("research-project"),
+        getNotesByTag("research-paper"),
+        getNotesByTag("ielts-mock"),
+        getNotesByTag("scholarship"),
+        getNotesByTag("evidence"),
+        getNotesByTag("vocabulary"),
+        getNotesByTag("assignment"),
+      ]);
+    const all = [...subjects, ...books, ...research, ...papers, ...ielts, ...scholarships, ...evidence, ...vocab, ...assignments];
 
     const areaDistribution = distribution([
       { area: "foundation", label: "Foundation", value: subjects.length },
@@ -508,30 +525,106 @@ export const obsidianAdapter: DataAdapter = {
       .sort((a, b) => a[0] - b[0])
       .map(([m, v]) => ({ label: MONTHS[m], value: v }));
 
+    // Pages read per month (cumulative pages of books finished that month).
+    const pagesByMonth = new Map<number, number>();
+    for (const n of books) {
+      const fin = str(n.frontmatter, "finished").match(/\d{4}-(\d{2})-\d{2}/);
+      if (fin) {
+        const idx = parseInt(fin[1], 10) - 1;
+        pagesByMonth.set(idx, (pagesByMonth.get(idx) ?? 0) + num(n.frontmatter, "pages", 0));
+      }
+    }
+    const pagesSeries: SeriesPoint[] = [...pagesByMonth.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([m, v]) => ({ label: MONTHS[m], value: v }));
+
+    // Vocabulary growth — cumulative terms added per month.
+    const vocabByMonth = new Map<number, number>();
+    for (const n of vocab) {
+      const c = str(n.frontmatter, "created").match(/\d{4}-(\d{2})-\d{2}/) ?? [];
+      const idx = c[1] ? parseInt(c[1], 10) - 1 : new Date(n.stat.mtime).getMonth();
+      vocabByMonth.set(idx, (vocabByMonth.get(idx) ?? 0) + 1);
+    }
+    let vocabCum = 0;
+    const vocabSeries: SeriesPoint[] = [...vocabByMonth.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([m, v]) => ({ label: MONTHS[m], value: (vocabCum += v) }));
+
+    // Assignments completed per month (status done, by due date).
+    const assignDoneByMonth = new Map<number, number>();
+    for (const n of assignments) {
+      if (str(n.frontmatter, "status").toLowerCase() !== "done") continue;
+      const d = (str(n.frontmatter, "due") || str(n.frontmatter, "date")).match(/\d{4}-(\d{2})-\d{2}/);
+      const idx = d ? parseInt(d[1], 10) - 1 : new Date(n.stat.mtime).getMonth();
+      assignDoneByMonth.set(idx, (assignDoneByMonth.get(idx) ?? 0) + 1);
+    }
+    const assignmentsSeries: SeriesPoint[] = [...assignDoneByMonth.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([m, v]) => ({ label: MONTHS[m], value: v }));
+
+    // Weekly productivity — note activity over the last 6 weeks (from mtimes).
+    const now = Date.now();
+    const weekCounts = new Array(6).fill(0);
+    for (const n of all) {
+      if (!n.stat?.mtime) continue;
+      const weeksAgo = Math.floor((now - n.stat.mtime) / (7 * 86_400_000));
+      if (weeksAgo >= 0 && weeksAgo < 6) weekCounts[5 - weeksAgo]++;
+    }
+    const productivityByWeek: SeriesPoint[] = weekCounts.map((v, i) => ({ label: `W${i + 1}`, value: v }));
+
     const productivityByDay = focusFromActivity(all).map((p) => ({ label: p.label, value: p.value }));
     const gpa = computeGpa(subjects);
+    const doneSubjects = subjects.filter((n) => str(n.frontmatter, "status").toLowerCase() === "completed").length;
+    const semesterCompletion = subjects.length ? Math.round((doneSubjects / subjects.length) * 100) : 0;
+
+    // Activity streak over the last 14 days, from note modification times.
+    const dayActive = new Array(14).fill(false);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    for (const n of all) {
+      if (!n.stat?.mtime) continue;
+      const d = new Date(n.stat.mtime);
+      d.setHours(0, 0, 0, 0);
+      const diff = Math.round((todayStart.getTime() - d.getTime()) / 86_400_000);
+      if (diff >= 0 && diff < 14) dayActive[13 - diff] = true;
+    }
+    let current = 0;
+    for (let i = 13; i >= 0; i--) {
+      if (dayActive[i]) current++;
+      else break;
+    }
+    let best = 0;
+    let run = 0;
+    for (const a of dayActive) {
+      if (a) { run++; best = Math.max(best, run); } else run = 0;
+    }
 
     const stats: Stat[] = [
       { id: "notes", label: "Records Tracked", value: all.length, hint: "across the vault" },
       { id: "gpa", label: "Current GPA", value: gpa ? gpa.toFixed(2) : "—", progress: gpa ? Math.round((gpa / 4) * 100) : 0 },
       { id: "books", label: "Books Finished", value: books.filter((n) => str(n.frontmatter, "status").toLowerCase() === "finished").length },
-      { id: "apps", label: "Applications", value: scholarships.length },
+      { id: "vocab", label: "Vocabulary", value: vocab.length, hint: `${vocab.filter((n) => str(n.frontmatter, "status").toLowerCase() === "mastered").length} mastered` },
     ];
 
     return {
       stats,
-      focusSeries: focusFromActivity(all).map((p) => ({ label: p.label, value: p.value })),
+      focusSeries: productivityByDay,
       areaDistribution,
       gpaSeries,
       readingSeries,
+      pagesSeries,
+      vocabSeries,
+      assignmentsSeries,
       productivityByDay,
-      streak: { current: 0, best: 0, days: new Array(14).fill(false) },
+      productivityByWeek,
+      semesterCompletion,
+      streak: { current, best, days: dayActive },
     };
   },
 
   /* ---------- Dashboard (composed) ---------- */
   async getDashboardData(): Promise<DashboardData> {
-    const [subjects, assignments, exams, projects, books, research, papers, ielts, scholarships, evidence, home] =
+    const [subjects, assignments, exams, projects, books, research, papers, ielts, scholarships, evidence, vocab, home, readingDash, ieltsDash] =
       await Promise.all([
         getNotesByTag("subject"),
         getNotesByTag("assignment"),
@@ -543,7 +636,10 @@ export const obsidianAdapter: DataAdapter = {
         getNotesByTag("ielts-mock"),
         getNotesByTag("scholarship"),
         getNotesByTag("evidence"),
+        getNotesByTag("vocabulary"),
         getNote("00 Dashboard/HOME.md"),
+        getNote("05 Library/Reading Dashboard.md"),
+        getNote("03 Legal English/IELTS Dashboard.md"),
       ]);
 
     const all = [...subjects, ...assignments, ...exams, ...projects, ...books, ...research, ...papers, ...ielts, ...scholarships, ...evidence];
@@ -592,6 +688,37 @@ export const obsidianAdapter: DataAdapter = {
     const currentResearch = [...research, ...papers].map(mapResearch).filter((r) => r.status !== "done").sort((a, b) => b.progress - a.progress)[0];
     const recentEvidence = evidence.map(mapEvidence).sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 3);
 
+    // Upcoming exams (their own widget).
+    const upcomingExams = deadlinesFrom(
+      exams.map(mapExam).filter((e) => e.date).map((e) => ({ id: e.id, title: e.title, date: e.date, area: "foundation" as AreaKey, priority: "high" as const })),
+      5
+    );
+
+    // Active scholarships + internships.
+    const activeScholarships = scholarshipObjs
+      .filter((s) => s.status !== "archived")
+      .sort((a, b) => daysUntil(a.deadline) - daysUntil(b.deadline))
+      .slice(0, 5);
+
+    const internships: Internship[] = evidence
+      .filter((n) => str(n.frontmatter, "category").toLowerCase() === "internship")
+      .map((n) => ({
+        id: n.path,
+        organization: str(n.frontmatter, "organization", str(n.frontmatter, "title", n.basename)),
+        role: str(n.frontmatter, "role", "Intern"),
+        start: str(n.frontmatter, "date") || undefined,
+        status: "in_progress" as const,
+        location: str(n.frontmatter, "location") || undefined,
+      }));
+
+    // Reading + vocab + IELTS roll-ups.
+    const pagesRead = books.map(mapBook).reduce((s, b) => s + b.currentPage, 0);
+    const inProgressBooks = books.filter((n) => str(n.frontmatter, "status").toLowerCase() === "reading").length;
+    const readingGoal = numOpt(readingDash?.frontmatter ?? {}, "books_goal") ?? Math.max(books.length, finishedBooks);
+    const vocabMastered = vocab.filter((n) => str(n.frontmatter, "status").toLowerCase() === "mastered").length;
+    const ieltsTarget = numOpt(ieltsDash?.frontmatter ?? {}, "target_band") ?? 8.0;
+    const ieltsCurrent = ieltsOverall || (numOpt(ieltsDash?.frontmatter ?? {}, "current_band") ?? 0);
+
     const mission =
       str(home?.frontmatter ?? {}, "mission") ||
       str(home?.frontmatter ?? {}, "focus") ||
@@ -604,7 +731,7 @@ export const obsidianAdapter: DataAdapter = {
       { id: "overdue", label: "Overdue", value: overdue, hint: overdue ? "needs attention" : "all clear" },
       { id: "week", label: "Due This Week", value: dueThisWeek },
       { id: "gpa", label: "Current GPA", value: gpa ? gpa.toFixed(2) : "—", progress: gpa ? Math.round((gpa / 4) * 100) : 0 },
-      { id: "ielts", label: "IELTS Progress", value: ieltsOverall ? ieltsOverall.toFixed(1) : "—", hint: "target 8.0", progress: Math.round((ieltsOverall / 9) * 100) },
+      { id: "ielts", label: "IELTS Progress", value: ieltsCurrent ? ieltsCurrent.toFixed(1) : "—", hint: `target ${ieltsTarget.toFixed(1)}`, progress: Math.round((ieltsCurrent / 9) * 100) },
     ];
 
     return {
@@ -617,16 +744,22 @@ export const obsidianAdapter: DataAdapter = {
         { area: "foundation", label: "Foundation", value: subjects.length },
         { area: "reading", label: "Reading", value: books.length },
         { area: "research", label: "Research", value: research.length + papers.length },
-        { area: "legal-english", label: "Legal English", value: ielts.length },
+        { area: "legal-english", label: "Legal English", value: ielts.length + vocab.length },
         { area: "scholarships", label: "Scholarships", value: scholarships.length },
         { area: "career", label: "Career", value: evidence.length },
       ]),
       recentActivity: recentActivity(all),
       upcomingDeadlines,
+      upcomingExams,
       todaysTasks,
       recentEvidence,
       currentBook,
       currentResearch,
+      activeScholarships,
+      internships,
+      vocab: { total: vocab.length, mastered: vocabMastered },
+      readingStats: { booksRead: finishedBooks, pagesRead, inProgress: inProgressBooks, goal: readingGoal },
+      ielts: { overall: ieltsCurrent, target: ieltsTarget },
     };
   },
 
@@ -647,5 +780,49 @@ export const obsidianAdapter: DataAdapter = {
         { id: "local-rest", name: "Local REST API", enabled: alive, version: "—" },
       ],
     };
+  },
+
+  /* ---------- Global search ---------- */
+  async getSearchIndex(): Promise<SearchRecord[]> {
+    return buildSearchIndex();
+  },
+
+  /* ---------- Calendar ---------- */
+  async getCalendarData(): Promise<CalendarEvent[]> {
+    const [assignments, exams, research, papers, scholarships, milestones] = await Promise.all([
+      getNotesByTag("assignment"),
+      getNotesByTag("exam"),
+      getNotesByTag("research-project"),
+      getNotesByTag("research-paper"),
+      getNotesByTag("scholarship"),
+      getNotesByTag("milestone"),
+    ]);
+
+    const events: CalendarEvent[] = [];
+    const push = (n: ObsidianNote, date: string | undefined, kind: CalendarEvent["kind"]) => {
+      if (!date) return;
+      const c = classify(n.path, n.tags, str(n.frontmatter, "category"));
+      events.push({
+        id: n.path,
+        title: str(n.frontmatter, "title", n.basename),
+        date,
+        kind,
+        area: c.area,
+        entityKey: c.entityKey,
+        path: n.path,
+      });
+    };
+
+    for (const n of assignments) push(n, str(n.frontmatter, "due") || str(n.frontmatter, "date"), "assignment");
+    for (const n of exams) push(n, str(n.frontmatter, "date") || str(n.frontmatter, "due"), "exam");
+    for (const n of [...research, ...papers]) push(n, str(n.frontmatter, "due"), "research");
+    for (const n of scholarships) push(n, str(n.frontmatter, "deadline"), "scholarship");
+    for (const n of milestones) push(n, str(n.frontmatter, "due") || str(n.frontmatter, "date"), "milestone");
+
+    // Keep only valid ISO dates, sorted ascending.
+    return events
+      .filter((e) => /^\d{4}-\d{2}-\d{2}/.test(e.date))
+      .map((e) => ({ ...e, date: e.date.slice(0, 10) }))
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
   },
 };

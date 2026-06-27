@@ -19,6 +19,7 @@ import type {
   Subject,
   TimelineEvent,
   University,
+  VocabEntry,
   Status,
 } from "@/lib/data/types";
 import type { ObsidianNote } from "./client";
@@ -263,6 +264,17 @@ export function mapSource(n: ObsidianNote): Source {
     year: numOpt(fm, "year"),
     type,
     cited: String(fm["cited"]).toLowerCase() === "true",
+  };
+}
+
+export function mapVocab(n: ObsidianNote): VocabEntry {
+  const fm = n.frontmatter;
+  return {
+    id: idOf(n),
+    term: titleOf(fm, n.basename),
+    definition: str(fm, "definition") || firstParagraph(n.content),
+    mastered: str(fm, "status").toLowerCase() === "mastered",
+    addedAt: date(fm, "created") ?? date(fm, "added") ?? new Date(n.stat.mtime).toISOString().slice(0, 10),
   };
 }
 

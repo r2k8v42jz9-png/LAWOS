@@ -1,4 +1,5 @@
-import { BarChart3, TrendingUp, PieChart as PieIcon, Flame, GraduationCap, BookOpen } from "lucide-react";
+import { BarChart3, TrendingUp, PieChart as PieIcon, Flame, GraduationCap, BookOpen, BookA, FileText, FileStack } from "lucide-react";
+import { ProgressRing } from "@/components/ui/progress-ring";
 import { getAdapter } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
@@ -71,11 +72,40 @@ export default async function AnalyticsPage() {
         </Panel>
       </div>
 
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Panel title="Pages read" icon={BookOpen} description="Per month">
+          <BarMiniChart data={data.pagesSeries} unit=" pages" color="#fbbf24" height={220} />
+        </Panel>
+        <Panel title="Vocabulary growth" icon={BookA} description="Cumulative terms learned">
+          <LineTrendChart data={data.vocabSeries} color="#38bdf8" unit=" terms" height={220} />
+        </Panel>
+      </div>
+
       <div className="grid gap-3 lg:grid-cols-3">
-        <Panel title="Productivity by day" icon={BarChart3} className="lg:col-span-2">
-          <BarMiniChart data={data.productivityByDay} unit="%" height={220} />
+        <Panel title="Assignments completed" icon={FileText} description="Per month">
+          <BarMiniChart data={data.assignmentsSeries} color="#a78bfa" height={200} />
+        </Panel>
+        <Panel title="Weekly productivity" icon={FileStack} description="Notes touched, last 6 weeks" className="lg:col-span-2">
+          <BarMiniChart data={data.productivityByWeek} height={200} />
+        </Panel>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Panel title="Semester completion" icon={GraduationCap} description="Subjects completed">
+          <div className="flex items-center gap-5">
+            <ProgressRing value={data.semesterCompletion} size={96} stroke={9}>
+              <span className="text-xl font-semibold text-foreground">{data.semesterCompletion}%</span>
+            </ProgressRing>
+            <p className="text-sm text-muted-foreground">of this term's subjects marked complete.</p>
+          </div>
         </Panel>
 
+        <Panel title="Productivity by day" icon={BarChart3} className="lg:col-span-2">
+          <BarMiniChart data={data.productivityByDay} unit="%" height={200} />
+        </Panel>
+      </div>
+
+      <div className="grid gap-3">
         <Panel title="Consistency" icon={Flame} description="Daily study streak">
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-semibold tracking-tight text-foreground">{data.streak.current}</span>

@@ -9,6 +9,9 @@ import { LineTrendChart, SkillRadarChart } from "@/components/charts/charts";
 import { Stagger, StaggerItem } from "@/components/motion/primitives";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { Badge } from "@/components/ui/badge";
+import { NewEntityMenu } from "@/components/entities/new-button";
+import { RecordActions } from "@/components/entities/record-actions";
+import { EntityEmptyState } from "@/components/entities/empty-state";
 
 export const metadata = { title: "Legal English" };
 
@@ -32,6 +35,14 @@ export default async function LegalEnglishPage() {
         eyebrow="Academics"
         title="Legal English"
         description="IELTS preparation, legal vocabulary and the four core skills."
+        actions={
+          <NewEntityMenu
+            items={[
+              { entityKey: "vocabulary", label: "New Vocabulary" },
+              { entityKey: "ielts-mock", label: "New IELTS Mock" },
+            ]}
+          />
+        }
       />
 
       <StatGrid stats={data.stats} />
@@ -81,36 +92,61 @@ export default async function LegalEnglishPage() {
           icon={BookA}
           description={`${data.vocabulary.filter((v) => v.mastered).length} mastered of ${data.vocabulary.length} shown`}
         >
-          <Stagger className="space-y-2">
-            {data.vocabulary.map((v) => (
-              <StaggerItem key={v.id}>
-                <div className="rounded-xl border border-hairline bg-surface-2/40 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-foreground">{v.term}</p>
-                    <Badge variant={v.mastered ? "success" : "neutral"}>
-                      {v.mastered ? "Mastered" : "Learning"}
-                    </Badge>
+          {data.vocabulary.length === 0 ? (
+            <EntityEmptyState
+              entityKey="vocabulary"
+              hint="Capture legal terms — saved to 03 Legal English/Vocabulary in your vault."
+            />
+          ) : (
+            <Stagger className="space-y-2">
+              {data.vocabulary.map((v) => (
+                <StaggerItem key={v.id}>
+                  <div data-record-card className="rounded-xl border border-hairline bg-surface-2/40 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-foreground">{v.term}</p>
+                      <div className="flex items-center gap-1">
+                        <Badge variant={v.mastered ? "success" : "neutral"}>
+                          {v.mastered ? "Mastered" : "Learning"}
+                        </Badge>
+                        <RecordActions entityKey="vocabulary" path={v.id} name={v.term} />
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{v.definition}</p>
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{v.definition}</p>
-                </div>
-              </StaggerItem>
-            ))}
-          </Stagger>
+                </StaggerItem>
+              ))}
+            </Stagger>
+          )}
         </Panel>
 
         {/* Mock tests */}
-        <Panel title="Mock tests" icon={ClipboardCheck} description={`Latest: ${data.mockTests[0]?.overall.toFixed(1)} overall`}>
+        <Panel
+          title="Mock tests"
+          icon={ClipboardCheck}
+          description={data.mockTests.length ? `Latest: ${data.mockTests[0]?.overall.toFixed(1)} overall` : "No mocks yet"}
+        >
+          {data.mockTests.length === 0 ? (
+            <EntityEmptyState
+              entityKey="ielts-mock"
+              title="No mock tests yet"
+              hint="Log an IELTS mock — saved to 03 Legal English/Mock Tests in your vault."
+              actionLabel="Create first mock"
+            />
+          ) : (
           <ul className="space-y-3">
             {data.mockTests.map((t) => (
-              <li key={t.id} className="rounded-xl border border-hairline bg-surface-2/40 p-4">
+              <li key={t.id} data-record-card className="rounded-xl border border-hairline bg-surface-2/40 p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-foreground">{t.title}</p>
                     <p className="text-xs text-muted-foreground">{formatShortDate(t.date)}</p>
                   </div>
-                  <span className="grid size-11 place-items-center rounded-full bg-sky-500/10 text-sm font-semibold text-sky-400 ring-1 ring-inset ring-sky-500/20">
-                    {t.overall.toFixed(1)}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="grid size-11 place-items-center rounded-full bg-sky-500/10 text-sm font-semibold text-sky-400 ring-1 ring-inset ring-sky-500/20">
+                      {t.overall.toFixed(1)}
+                    </span>
+                    <RecordActions entityKey="ielts-mock" path={t.id} name={t.title} />
+                  </div>
                 </div>
                 <div className="mt-3 grid grid-cols-4 gap-2">
                   {t.bands.map((b) => (
@@ -123,6 +159,7 @@ export default async function LegalEnglishPage() {
               </li>
             ))}
           </ul>
+          )}
         </Panel>
       </div>
     </div>

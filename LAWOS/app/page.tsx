@@ -23,6 +23,12 @@ import { TasksList } from "@/components/dashboard/tasks-list";
 import { DeadlinesList } from "@/components/dashboard/deadlines-list";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { AreaProgressGrid } from "@/components/dashboard/area-progress-grid";
+import {
+  ReadingProgressWidget,
+  VocabWidget,
+  ScholarshipTrackerWidget,
+  InternshipWidget,
+} from "@/components/dashboard/widgets";
 
 // Data is read live from the Obsidian vault on each request.
 export const dynamic = "force-dynamic";
@@ -95,6 +101,24 @@ export default async function DashboardPage() {
         <Panel title="Recent activity" description="Your latest moves" icon={Activity}>
           <ActivityFeed items={data.recentActivity} />
         </Panel>
+      </div>
+
+      {/* Trackers */}
+      <div className="grid gap-3 lg:grid-cols-3">
+        <ReadingProgressWidget stats={data.readingStats} />
+        <VocabWidget vocab={data.vocab} />
+        <Panel title="Upcoming exams" description="Scheduled assessments" icon={CalendarClock}>
+          {data.upcomingExams.length > 0 ? (
+            <DeadlinesList deadlines={data.upcomingExams} />
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">No exams scheduled.</p>
+          )}
+        </Panel>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <ScholarshipTrackerWidget items={data.activeScholarships} />
+        <InternshipWidget items={data.internships} />
       </div>
 
       {/* Per-area progress */}

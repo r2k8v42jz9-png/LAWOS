@@ -9,6 +9,9 @@ import { BarMiniChart } from "@/components/charts/charts";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives";
+import { NewEntityButton } from "@/components/entities/new-button";
+import { RecordActions } from "@/components/entities/record-actions";
+import { EntityEmptyState } from "@/components/entities/empty-state";
 
 export const metadata = { title: "Reading" };
 
@@ -39,6 +42,7 @@ export default async function ReadingPage() {
         eyebrow="Knowledge"
         title="Reading"
         description={`${data.goal.completed} of ${data.goal.target} books in ${data.goal.year} — and counting.`}
+        actions={<NewEntityButton entityKey="book" />}
       />
 
       <StatGrid stats={data.stats} />
@@ -101,33 +105,48 @@ export default async function ReadingPage() {
       </Panel>
 
       {/* Library */}
-      <Panel title="Library" icon={Library} description={`${data.books.length} books tracked`}>
-        <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.books.map((b) => {
-            const pct = b.totalPages ? Math.round((b.currentPage / b.totalPages) * 100) : 0;
-            return (
-              <StaggerItem key={b.id}>
-                <HoverLift className="flex gap-4 rounded-xl border border-hairline bg-surface-2/40 p-4">
-                  <div
-                    className="relative h-24 w-16 shrink-0 rounded-md shadow-lg"
-                    style={{ background: `linear-gradient(150deg, ${b.coverColor}, ${b.coverColor}99)` }}
+      <Panel
+        title="Library"
+        icon={Library}
+        description={`${data.books.length} books tracked`}
+        action={data.books.length > 0 ? <NewEntityButton entityKey="book" variant="secondary" /> : undefined}
+      >
+        {data.books.length === 0 ? (
+          <EntityEmptyState entityKey="book" hint="Track what you're reading — saved straight to 05 Library/Books in your vault." />
+        ) : (
+          <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.books.map((b) => {
+              const pct = b.totalPages ? Math.round((b.currentPage / b.totalPages) * 100) : 0;
+              return (
+                <StaggerItem key={b.id}>
+                  <HoverLift
+                    data-record-card
+                    className="flex gap-4 rounded-xl border border-hairline bg-surface-2/40 p-4"
                   >
-                    <span className="absolute inset-y-0 left-1 w-px bg-white/20" />
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <p className="truncate text-sm font-semibold text-foreground">{b.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{b.author}</p>
-                    <div className="mt-1"><Stars rating={b.rating} /></div>
-                    <div className="mt-auto pt-3">
-                      <div className="mb-1.5"><StatusBadge status={b.status} /></div>
-                      <MiniBar value={pct} color={b.coverColor} height={4} />
+                    <div
+                      className="relative h-24 w-16 shrink-0 rounded-md shadow-lg"
+                      style={{ background: `linear-gradient(150deg, ${b.coverColor}, ${b.coverColor}99)` }}
+                    >
+                      <span className="absolute inset-y-0 left-1 w-px bg-white/20" />
                     </div>
-                  </div>
-                </HoverLift>
-              </StaggerItem>
-            );
-          })}
-        </Stagger>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="truncate text-sm font-semibold text-foreground">{b.title}</p>
+                        <RecordActions entityKey="book" path={b.id} name={b.title} />
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">{b.author}</p>
+                      <div className="mt-1"><Stars rating={b.rating} /></div>
+                      <div className="mt-auto pt-3">
+                        <div className="mb-1.5"><StatusBadge status={b.status} /></div>
+                        <MiniBar value={pct} color={b.coverColor} height={4} />
+                      </div>
+                    </div>
+                  </HoverLift>
+                </StaggerItem>
+              );
+            })}
+          </Stagger>
+        )}
       </Panel>
 
       {/* Notes */}

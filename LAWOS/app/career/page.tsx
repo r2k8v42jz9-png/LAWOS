@@ -17,6 +17,9 @@ import { SkillRadarChart } from "@/components/charts/charts";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AreaTag } from "@/components/shared/area-tag";
 import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives";
+import { NewEntityMenu } from "@/components/entities/new-button";
+import { RecordActions } from "@/components/entities/record-actions";
+import { EntityEmptyState } from "@/components/entities/empty-state";
 
 export const metadata = { title: "Career" };
 
@@ -41,6 +44,15 @@ export default async function CareerPage() {
         eyebrow="Future"
         title="Career"
         description="Your professional evidence base — portfolio, experience, skills and wins."
+        actions={
+          <NewEntityMenu
+            items={[
+              { entityKey: "opportunity", label: "New Opportunity" },
+              { entityKey: "internship", label: "New Internship" },
+              { entityKey: "application", label: "New Application" },
+            ]}
+          />
+        }
       />
 
       <StatGrid stats={data.stats} />
@@ -88,10 +100,16 @@ export default async function CareerPage() {
 
       {/* Evidence */}
       <Panel title="Evidence" icon={Award} description={`${data.evidence.length} proofs of work`}>
+        {data.evidence.length === 0 ? (
+          <EntityEmptyState
+            entityKey="evidence"
+            hint="Log proof of work — saved to your Obsidian vault's portfolio."
+          />
+        ) : (
         <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.evidence.map((ev) => (
             <StaggerItem key={ev.id}>
-              <HoverLift className="h-full rounded-xl border border-hairline bg-surface-2/40 p-4">
+              <HoverLift data-record-card className="h-full rounded-xl border border-hairline bg-surface-2/40 p-4">
                 <div className="flex items-center justify-between">
                   <span
                     className="grid size-9 place-items-center rounded-lg ring-1 ring-inset"
@@ -99,7 +117,10 @@ export default async function CareerPage() {
                   >
                     <Award className="size-4" />
                   </span>
-                  <AreaTag area={ev.area} />
+                  <div className="flex items-center gap-1">
+                    <AreaTag area={ev.area} />
+                    <RecordActions entityKey="evidence" path={ev.id} name={ev.title} />
+                  </div>
                 </div>
                 <p className="mt-3 text-sm font-semibold text-foreground">{ev.title}</p>
                 <p className="mt-0.5 text-xs capitalize text-muted-foreground">{ev.kind} · {formatShortDate(ev.date)}</p>
@@ -108,20 +129,32 @@ export default async function CareerPage() {
             </StaggerItem>
           ))}
         </Stagger>
+        )}
       </Panel>
 
       <div className="grid gap-3 lg:grid-cols-2">
         {/* Internships */}
         <Panel title="Internships" icon={Building2}>
+          {data.internships.length === 0 ? (
+            <EntityEmptyState
+              entityKey="internship"
+              title="No internships yet"
+              hint="Track internships and vacation schemes — saved to 09 Career in your vault."
+              actionLabel="Create first internship"
+            />
+          ) : (
           <ul className="space-y-3">
             {data.internships.map((i) => (
-              <li key={i.id} className="rounded-xl border border-hairline bg-surface-2/40 p-4">
+              <li key={i.id} data-record-card className="rounded-xl border border-hairline bg-surface-2/40 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-foreground">{i.role}</p>
                     <p className="text-xs text-muted-foreground">{i.organization}{i.location ? ` · ${i.location}` : ""}</p>
                   </div>
-                  <StatusBadge status={i.status} />
+                  <div className="flex items-center gap-1">
+                    <StatusBadge status={i.status} />
+                    <RecordActions entityKey="internship" path={i.id} name={i.role} />
+                  </div>
                 </div>
                 {(i.start || i.end) && (
                   <p className="mt-2 text-[11px] text-muted-foreground">
@@ -132,6 +165,7 @@ export default async function CareerPage() {
               </li>
             ))}
           </ul>
+          )}
         </Panel>
 
         {/* Achievements */}

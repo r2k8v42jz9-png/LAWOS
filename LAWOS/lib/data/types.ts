@@ -358,10 +358,16 @@ export interface DashboardData {
   areaDistribution: { area: AreaKey; label: string; value: number }[];
   recentActivity: ActivityItem[];
   upcomingDeadlines: Deadline[];
+  upcomingExams: Deadline[];
   todaysTasks: Task[];
   recentEvidence: Evidence[];
   currentBook?: Book;
   currentResearch?: Research;
+  activeScholarships: Scholarship[];
+  internships: Internship[];
+  vocab: { total: number; mastered: number };
+  readingStats: { booksRead: number; pagesRead: number; inProgress: number; goal: number };
+  ielts: { overall: number; target: number };
   gpa: number;
 }
 
@@ -437,8 +443,49 @@ export interface AnalyticsData {
   areaDistribution: { area: AreaKey; label: string; value: number }[];
   gpaSeries: SeriesPoint[];
   readingSeries: SeriesPoint[];
+  pagesSeries: SeriesPoint[];
+  vocabSeries: SeriesPoint[];
+  assignmentsSeries: SeriesPoint[];
   productivityByDay: SeriesPoint[];
+  productivityByWeek: SeriesPoint[];
+  semesterCompletion: number;
   streak: { current: number; best: number; days: boolean[] };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Search + calendar (Phase 2)                                        */
+/* ------------------------------------------------------------------ */
+
+export interface SearchRecord {
+  /** Vault path (also the stable id). */
+  path: string;
+  title: string;
+  /** Group key, e.g. "book", "subject", "note". */
+  kind: string;
+  kindLabel: string;
+  folder: string;
+  /** Page the record lives on. */
+  href: string;
+  area: AreaKey;
+}
+
+export type CalendarEventKind =
+  | "assignment"
+  | "exam"
+  | "research"
+  | "scholarship"
+  | "milestone"
+  | "reading";
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: ISODate;
+  kind: CalendarEventKind;
+  area: AreaKey;
+  /** Entity key for opening the edit dialog, when the record is editable. */
+  entityKey?: string;
+  path: string;
 }
 
 export type SyncState = "synced" | "syncing" | "error" | "disconnected";

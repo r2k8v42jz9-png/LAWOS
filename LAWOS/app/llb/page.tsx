@@ -7,6 +7,9 @@ import { MetricPill, MiniBar } from "@/components/shared/bits";
 import { Timeline } from "@/components/shared/timeline";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives";
+import { NewEntityMenu } from "@/components/entities/new-button";
+import { RecordActions } from "@/components/entities/record-actions";
+import { EntityEmptyState } from "@/components/entities/empty-state";
 
 export const metadata = { title: "LLB" };
 
@@ -23,6 +26,15 @@ export default async function LLBPage() {
         eyebrow="Academics"
         title="LLB (Hons)"
         description={data.program}
+        actions={
+          <NewEntityMenu
+            items={[
+              { entityKey: "course", label: "New Course" },
+              { entityKey: "assignment", label: "New Assignment" },
+              { entityKey: "exam", label: "New Exam" },
+            ]}
+          />
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -41,32 +53,44 @@ export default async function LLBPage() {
       </Panel>
 
       <Panel title="Current modules" icon={Scale} description={`${data.modules.length} active`}>
-        <Stagger className="grid gap-3 md:grid-cols-2">
-          {data.modules.map((m) => (
-            <StaggerItem key={m.id}>
-              <HoverLift className="rounded-xl border border-hairline bg-surface-2/40 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground ring-1 ring-hairline">
-                      {m.code}
-                    </span>
-                    <p className="mt-1.5 truncate text-sm font-semibold text-foreground">{m.name}</p>
+        {data.modules.length === 0 ? (
+          <EntityEmptyState
+            entityKey="course"
+            title="No courses yet"
+            hint="Add your LLB modules — saved to 02 LLB/Modules in your vault."
+            actionLabel="Create first course"
+          />
+        ) : (
+          <Stagger className="grid gap-3 md:grid-cols-2">
+            {data.modules.map((m) => (
+              <StaggerItem key={m.id}>
+                <HoverLift data-record-card className="rounded-xl border border-hairline bg-surface-2/40 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground ring-1 ring-hairline">
+                        {m.code}
+                      </span>
+                      <p className="mt-1.5 truncate text-sm font-semibold text-foreground">{m.name}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {m.grade ? (
+                        <span className="text-sm font-semibold text-emerald-400">{m.grade}</span>
+                      ) : (
+                        <StatusBadge status={m.status} />
+                      )}
+                      <RecordActions entityKey="course" path={m.id} name={m.name} />
+                    </div>
                   </div>
-                  {m.grade ? (
-                    <span className="text-sm font-semibold text-emerald-400">{m.grade}</span>
-                  ) : (
-                    <StatusBadge status={m.status} />
-                  )}
-                </div>
-                <div className="mt-3.5 flex items-center gap-3">
-                  <MiniBar value={m.progress} color="#a78bfa" />
-                  <span className="shrink-0 text-xs font-medium text-foreground">{m.progress}%</span>
-                </div>
-                <p className="mt-2 text-[11px] text-muted-foreground">{m.credits} credits</p>
-              </HoverLift>
-            </StaggerItem>
-          ))}
-        </Stagger>
+                  <div className="mt-3.5 flex items-center gap-3">
+                    <MiniBar value={m.progress} color="#a78bfa" />
+                    <span className="shrink-0 text-xs font-medium text-foreground">{m.progress}%</span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">{m.credits} credits</p>
+                </HoverLift>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        )}
       </Panel>
 
       <Panel title="Universities" icon={Building2} description="Current enrolment & transfer targets">

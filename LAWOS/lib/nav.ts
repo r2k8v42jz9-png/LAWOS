@@ -8,6 +8,7 @@ import {
   Award,
   Briefcase,
   BarChart3,
+  CalendarDays,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -56,6 +57,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: "System",
     items: [
+      { label: "Calendar", href: "/calendar", icon: CalendarDays },
       { label: "Analytics", href: "/analytics", icon: BarChart3 },
       { label: "Settings", href: "/settings", icon: Settings },
     ],

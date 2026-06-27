@@ -8,6 +8,9 @@ import { MiniBar } from "@/components/shared/bits";
 import { DeadlinesList } from "@/components/dashboard/deadlines-list";
 import { StatusBadge, PriorityBadge } from "@/components/ui/status-badge";
 import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives";
+import { NewEntityButton } from "@/components/entities/new-button";
+import { RecordActions } from "@/components/entities/record-actions";
+import { EntityEmptyState } from "@/components/entities/empty-state";
 
 export const metadata = { title: "Scholarships" };
 
@@ -24,24 +27,39 @@ export default async function ScholarshipsPage() {
         eyebrow="Future"
         title="Scholarships"
         description="Every application, requirement and deadline — prioritised by what's closing soonest."
+        actions={<NewEntityButton entityKey="scholarship" />}
       />
 
       <StatGrid stats={data.stats} />
 
-      <Panel title="Applications" icon={Award} description={`${data.scholarships.length} active`}>
+      <Panel
+        title="Applications"
+        icon={Award}
+        description={`${data.scholarships.length} active`}
+        action={data.scholarships.length > 0 ? <NewEntityButton entityKey="scholarship" variant="secondary" /> : undefined}
+      >
+        {data.scholarships.length === 0 ? (
+          <EntityEmptyState
+            entityKey="scholarship"
+            hint="Track an application — saved to 08 Scholarships in your vault."
+          />
+        ) : (
         <Stagger className="grid gap-3 lg:grid-cols-2">
           {sorted.map((s) => {
             const days = daysUntil(s.deadline);
             const met = s.requirements.filter((r) => r.met).length;
             return (
               <StaggerItem key={s.id}>
-                <HoverLift className="flex h-full flex-col rounded-xl border border-hairline bg-surface-2/40 p-5">
+                <HoverLift data-record-card className="flex h-full flex-col rounded-xl border border-hairline bg-surface-2/40 p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-foreground">{s.name}</p>
                       <p className="truncate text-xs text-muted-foreground">{s.provider}</p>
                     </div>
-                    <PriorityBadge priority={s.priority} />
+                    <div className="flex items-center gap-1">
+                      <PriorityBadge priority={s.priority} />
+                      <RecordActions entityKey="scholarship" path={s.id} name={s.name} />
+                    </div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -98,6 +116,7 @@ export default async function ScholarshipsPage() {
             );
           })}
         </Stagger>
+        )}
       </Panel>
 
       <Panel title="Deadlines" icon={CalendarClock} description="Closing soon">
