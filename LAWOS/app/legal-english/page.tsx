@@ -14,6 +14,9 @@ export const metadata = { title: "Legal English" };
 
 const BAND_COLOR = "#38bdf8";
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function LegalEnglishPage() {
   const data = await getAdapter().getLegalEnglishData();
   const radar = [

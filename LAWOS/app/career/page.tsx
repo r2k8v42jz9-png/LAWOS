@@ -28,6 +28,9 @@ const KIND_COLOR: Record<string, string> = {
   experience: "#22d3ee",
 };
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function CareerPage() {
   const data = await getAdapter().getCareerData();
   const radar = data.skills.map((s) => ({ label: s.name.split(" ")[0], value: s.level }));

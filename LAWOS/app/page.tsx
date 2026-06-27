@@ -24,6 +24,9 @@ import { DeadlinesList } from "@/components/dashboard/deadlines-list";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { AreaProgressGrid } from "@/components/dashboard/area-progress-grid";
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const data = await getAdapter().getDashboardData();
 
@@ -48,17 +51,18 @@ export default async function DashboardPage() {
       {/* Charts + tasks */}
       <div className="grid gap-3 lg:grid-cols-3">
         <Panel
-          title="Focus this week"
-          description="Hours of deep work across all areas"
+          title="Activity this week"
+          description="Vault notes updated per day"
           icon={TrendingUp}
           className="lg:col-span-2"
           action={
             <span className="text-sm font-semibold text-foreground">
-              36.3h <span className="text-xs font-medium text-emerald-400">+4.2h</span>
+              {data.focusSeries.reduce((s, p) => s + p.value, 0)}{" "}
+              <span className="text-xs font-medium text-muted-foreground">updates</span>
             </span>
           }
         >
-          <AreaTrendChart data={data.focusSeries} unit="h" height={250} />
+          <AreaTrendChart data={data.focusSeries} height={250} />
         </Panel>
 
         <Panel title="Today's Tasks" description="What moves the needle now" icon={CheckSquare}>

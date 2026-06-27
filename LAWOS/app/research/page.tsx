@@ -20,6 +20,9 @@ const SOURCE_VARIANT = {
   report: "neutral",
 } as const;
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function ResearchPage() {
   const data = await getAdapter().getResearchData();
 

@@ -11,6 +11,9 @@ import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives"
 
 export const metadata = { title: "Scholarships" };
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function ScholarshipsPage() {
   const data = await getAdapter().getScholarshipsData();
   const sorted = [...data.scholarships].sort((a, b) => daysUntil(a.deadline) - daysUntil(b.deadline));

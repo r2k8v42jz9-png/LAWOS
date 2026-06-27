@@ -14,6 +14,9 @@ import { CHART_PALETTE } from "@/lib/areas";
 
 export const metadata = { title: "Analytics" };
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function AnalyticsPage() {
   const data = await getAdapter().getAnalyticsData();
 

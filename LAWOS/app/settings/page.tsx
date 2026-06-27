@@ -24,6 +24,9 @@ const SYNC_META = {
   disconnected: { label: "Disconnected", className: "text-muted-foreground", dot: "bg-muted-foreground" },
 } as const;
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   const data = await getAdapter().getSettings();
   const sync = SYNC_META[data.sync.state];
@@ -52,9 +55,9 @@ export default async function SettingsPage() {
               </Badge>
             </div>
             <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-              Currently serving hand-authored mock data. The interface is wired to a single{" "}
+              Reading live from your Obsidian vault via the Local REST API. The interface is wired to a single{" "}
               <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-[11px]">DataAdapter</code>{" "}
-              contract — point it at the Obsidian vault to go live with zero component changes.
+              contract, so the data source is swappable with zero component changes.
             </p>
           </div>
         </div>

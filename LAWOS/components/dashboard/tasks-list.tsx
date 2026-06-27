@@ -18,6 +18,17 @@ export function TasksList({ tasks }: { tasks: Task[] }) {
 
   const done = state.filter((t) => t.done).length;
 
+  if (state.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-1 py-8 text-center">
+        <p className="text-sm font-medium text-foreground">No tasks due</p>
+        <p className="text-xs text-muted-foreground">
+          Add an assignment, exam or project in your vault to see it here.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1">
       <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">

@@ -26,9 +26,12 @@ function Stars({ rating }: { rating?: number }) {
   );
 }
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function ReadingPage() {
   const data = await getAdapter().getReadingData();
-  const goalPct = Math.round((data.goal.completed / data.goal.target) * 100);
+  const goalPct = data.goal.target ? Math.round((data.goal.completed / data.goal.target) * 100) : 0;
 
   return (
     <div className="space-y-7">
@@ -81,7 +84,7 @@ export default async function ReadingPage() {
                   <Stars rating={data.currentBook.rating} />
                 </div>
                 <div className="mt-4 flex items-center gap-3">
-                  <MiniBar value={Math.round((data.currentBook.currentPage / data.currentBook.totalPages) * 100)} color="#fbbf24" />
+                  <MiniBar value={data.currentBook.totalPages ? Math.round((data.currentBook.currentPage / data.currentBook.totalPages) * 100) : 0} color="#fbbf24" />
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {data.currentBook.currentPage}/{data.currentBook.totalPages}
                   </span>
@@ -101,7 +104,7 @@ export default async function ReadingPage() {
       <Panel title="Library" icon={Library} description={`${data.books.length} books tracked`}>
         <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.books.map((b) => {
-            const pct = Math.round((b.currentPage / b.totalPages) * 100);
+            const pct = b.totalPages ? Math.round((b.currentPage / b.totalPages) * 100) : 0;
             return (
               <StaggerItem key={b.id}>
                 <HoverLift className="flex gap-4 rounded-xl border border-hairline bg-surface-2/40 p-4">

@@ -11,6 +11,9 @@ import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives"
 
 export const metadata = { title: "Foundation" };
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function FoundationPage() {
   const data = await getAdapter().getFoundationData();
 
@@ -35,13 +38,15 @@ export default async function FoundationPage() {
               <span className="text-3xl font-semibold tracking-tight text-foreground">
                 {data.semester.progress}%
               </span>
-              <span className="text-xs text-muted-foreground">
-                {formatShortDate(data.semester.start)} → {formatShortDate(data.semester.end)}
-              </span>
+              {data.semester.start && data.semester.end && (
+                <span className="text-xs text-muted-foreground">
+                  {formatShortDate(data.semester.start)} → {formatShortDate(data.semester.end)}
+                </span>
+              )}
             </div>
             <MiniBar value={data.semester.progress} height={8} />
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <MetricPill label="GPA" value={data.gpa.toFixed(2)} sub="Top 5%" />
+              <MetricPill label="GPA" value={data.gpa ? data.gpa.toFixed(2) : "—"} sub="weighted" />
               <MetricPill label="Credits" value={`${data.creditsEarned}/${data.creditsTotal}`} sub="earned" />
               <MetricPill label="Subjects" value={data.subjects.length} sub="this term" />
               <MetricPill label="Exams" value={data.exams.length} sub="scheduled" />

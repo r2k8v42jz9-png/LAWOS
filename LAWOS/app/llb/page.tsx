@@ -10,9 +10,12 @@ import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives"
 
 export const metadata = { title: "LLB" };
 
+// Data is read live from the Obsidian vault on each request.
+export const dynamic = "force-dynamic";
+
 export default async function LLBPage() {
   const data = await getAdapter().getLLBData();
-  const overall = Math.round((data.creditsEarned / data.creditsTotal) * 100);
+  const overall = data.creditsTotal ? Math.round((data.creditsEarned / data.creditsTotal) * 100) : 0;
 
   return (
     <div className="space-y-7">

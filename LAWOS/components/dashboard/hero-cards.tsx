@@ -42,8 +42,7 @@ export function MissionCard({ mission, gpa }: { mission: string; gpa: number }) 
         </Link>
         <div className="flex items-center gap-2 rounded-lg border border-hairline bg-surface-2/60 px-3 py-2">
           <span className="text-xs text-muted-foreground">GPA</span>
-          <span className="text-sm font-semibold text-foreground">{gpa.toFixed(2)}</span>
-          <span className="text-xs font-medium text-emerald-400">Top 5%</span>
+          <span className="text-sm font-semibold text-foreground">{gpa ? gpa.toFixed(2) : "—"}</span>
         </div>
       </div>
     </motion.div>
