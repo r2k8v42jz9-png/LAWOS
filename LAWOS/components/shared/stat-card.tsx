@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Stat } from "@/lib/data/types";

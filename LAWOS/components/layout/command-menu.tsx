@@ -22,7 +22,6 @@ import {
   FlaskConical,
   Library,
   Award,
-  Languages,
   BookA,
   ClipboardCheck,
   Building2,

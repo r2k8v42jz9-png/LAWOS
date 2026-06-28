@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useTheme } from "next-themes";
 import { Monitor, Moon, Sun, Check } from "lucide-react";
 import { cn } from "@/lib/utils";

@@ -36,11 +36,16 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const data = await getAdapter().getDashboardData();
 
+  const now = new Date();
+  const eyebrow = `${now.toLocaleDateString("en-US", { weekday: "long" })} · ${now.getDate()} ${now.toLocaleDateString("en-US", { month: "long" })}`;
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Saturday · 27 June"
-        title="Good morning, Aziz"
+        eyebrow={eyebrow}
+        title={`${greeting}, Aziz`}
         description="Your command center across Foundation, LLB, research, reading and beyond."
       />
 

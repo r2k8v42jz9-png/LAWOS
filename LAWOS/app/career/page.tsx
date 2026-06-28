@@ -1,5 +1,4 @@
 import {
-  Briefcase,
   Award,
   FolderGit2,
   Building2,

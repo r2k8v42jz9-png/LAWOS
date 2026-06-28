@@ -28,13 +28,11 @@ import {
   str,
   num,
   numOpt,
-  list,
   date,
   status as fmStatus,
   priorityFromScore,
   body,
   titleOf,
-  progressFromPages,
 } from "./frontmatter";
 
 /* stable id from the note path */

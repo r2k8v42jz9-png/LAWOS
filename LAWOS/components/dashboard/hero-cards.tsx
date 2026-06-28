@@ -1,10 +1,9 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Sparkles, BookOpen, FlaskConical, ArrowRight } from "lucide-react";
-import { formatLongDate } from "@/lib/utils";
+import { formatLongDate, todayISO } from "@/lib/utils";
 import type { Book, Research } from "@/lib/data/types";
 import { EASE } from "@/components/motion/primitives";
 import { ProgressRing } from "@/components/ui/progress-ring";
@@ -27,7 +26,7 @@ export function MissionCard({ mission, gpa }: { mission: string; gpa: number }) 
           <Sparkles className="size-3.5" />
           Mission Today
         </span>
-        <span className="text-xs text-muted-foreground">{formatLongDate("2026-06-27")}</span>
+        <span className="text-xs text-muted-foreground">{formatLongDate(todayISO())}</span>
       </div>
       <p className="mt-4 max-w-2xl text-balance text-xl font-medium leading-relaxed tracking-tight text-foreground sm:text-2xl">
         {mission}
@@ -50,7 +49,7 @@ export function MissionCard({ mission, gpa }: { mission: string; gpa: number }) 
 }
 
 export function CurrentBookCard({ book }: { book: Book }) {
-  const pct = Math.round((book.currentPage / book.totalPages) * 100);
+  const pct = book.totalPages ? Math.round((book.currentPage / book.totalPages) * 100) : 0;
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}

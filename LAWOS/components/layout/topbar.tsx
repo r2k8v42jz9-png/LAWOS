@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { usePathname } from "next/navigation";
 import { Search, Bell, Plus } from "lucide-react";
 import { ALL_NAV_ITEMS } from "@/lib/nav";
@@ -50,7 +49,11 @@ export function Topbar() {
 
         <ThemeToggle />
 
-        <Button size="sm" className="hidden md:inline-flex">
+        <Button
+          size="sm"
+          className="hidden md:inline-flex"
+          onClick={() => window.dispatchEvent(new CustomEvent("lawos:quick-capture"))}
+        >
           <Plus className="size-4" />
           New
         </Button>

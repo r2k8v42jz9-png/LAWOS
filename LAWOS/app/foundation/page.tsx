@@ -1,12 +1,11 @@
-import { GraduationCap, FileText, CalendarClock, FolderKanban, BookMarked, Plus } from "lucide-react";
+import { GraduationCap, FileText, CalendarClock, FolderKanban, BookMarked } from "lucide-react";
 import { getAdapter } from "@/lib/data";
-import { formatShortDate, relativeDay } from "@/lib/utils";
+import { formatShortDate, relativeDay, isoDay, isoMonthShort } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { Panel } from "@/components/shared/panel";
 import { MetricPill, MiniBar } from "@/components/shared/bits";
 import { Timeline } from "@/components/shared/timeline";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
 import { Stagger, StaggerItem, HoverLift } from "@/components/motion/primitives";
 import { NewEntityButton } from "@/components/entities/new-button";
 import { RecordActions } from "@/components/entities/record-actions";
@@ -128,10 +127,8 @@ export default async function FoundationPage() {
             {data.exams.map((ex) => (
               <li key={ex.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-rose-500/10 text-rose-400 ring-1 ring-inset ring-rose-500/20">
-                  <span className="text-sm font-semibold leading-none">{new Date(ex.date).getDate()}</span>
-                  <span className="text-[9px] uppercase leading-none">
-                    {new Date(ex.date).toLocaleDateString("en-US", { month: "short" })}
-                  </span>
+                  <span className="text-sm font-semibold leading-none">{ex.date ? isoDay(ex.date) : "—"}</span>
+                  <span className="text-[9px] uppercase leading-none">{isoMonthShort(ex.date)}</span>
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{ex.title}</p>

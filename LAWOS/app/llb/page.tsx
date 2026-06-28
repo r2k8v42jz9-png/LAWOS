@@ -1,6 +1,6 @@
 import { Scale, Building2, FileText, CalendarClock, GraduationCap } from "lucide-react";
 import { getAdapter } from "@/lib/data";
-import { formatShortDate, relativeDay } from "@/lib/utils";
+import { relativeDay, isoDay, isoMonthShort } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { Panel } from "@/components/shared/panel";
 import { MetricPill, MiniBar } from "@/components/shared/bits";
@@ -143,10 +143,8 @@ export default async function LLBPage() {
             {data.exams.map((ex) => (
               <li key={ex.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-violet-500/10 text-violet-400 ring-1 ring-inset ring-violet-500/20">
-                  <span className="text-sm font-semibold leading-none">{new Date(ex.date).getDate()}</span>
-                  <span className="text-[9px] uppercase leading-none">
-                    {new Date(ex.date).toLocaleDateString("en-US", { month: "short" })}
-                  </span>
+                  <span className="text-sm font-semibold leading-none">{ex.date ? isoDay(ex.date) : "—"}</span>
+                  <span className="text-[9px] uppercase leading-none">{isoMonthShort(ex.date)}</span>
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{ex.title}</p>

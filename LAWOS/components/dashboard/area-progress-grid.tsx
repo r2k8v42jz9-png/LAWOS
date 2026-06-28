@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import type { AreaProgress } from "@/lib/data/types";
 import { AREA_META } from "@/lib/areas";
 import { ALL_NAV_ITEMS } from "@/lib/nav";

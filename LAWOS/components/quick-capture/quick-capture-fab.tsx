@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Zap, Loader2, CornerDownLeft, AlertCircle, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/field";
 import { parseCapture, CAPTURE_HINTS } from "@/lib/obsidian/capture";
 import { quickCapture } from "@/lib/obsidian/actions";
@@ -32,6 +31,13 @@ export function QuickCaptureFab() {
       setBusy(false);
     }
   }, [open]);
+
+  // Let other UI (e.g. the topbar "New" button) open quick capture.
+  React.useEffect(() => {
+    const openCapture = () => setOpen(true);
+    window.addEventListener("lawos:quick-capture", openCapture);
+    return () => window.removeEventListener("lawos:quick-capture", openCapture);
+  }, []);
 
   const parsed = parseCapture(value);
 

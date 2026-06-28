@@ -1,4 +1,4 @@
-import { Languages, TrendingUp, BookA, ClipboardCheck, Target, Radar } from "lucide-react";
+import { TrendingUp, BookA, ClipboardCheck, Target, Radar } from "lucide-react";
 import { getAdapter } from "@/lib/data";
 import { formatShortDate } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";

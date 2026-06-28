@@ -30,3 +30,7 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# tauri (rust build output + generated schemas)
+/src-tauri/target
+/src-tauri/gen/schemas

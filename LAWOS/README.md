@@ -8,6 +8,24 @@ Foundation studies, the LLB, Legal English / IELTS, reading, research,
 scholarships and career evidence. It is designed to feel like Linear, Raycast,
 Notion and the Vercel dashboard — minimal, premium, fast, **dark mode first**.
 
+> **Status: v1.0 web — stable and feature-complete.** Records are created,
+> edited and deleted directly in the UI and written to your Obsidian vault.
+> A native **Tauri v2 desktop** shell is also available — see [DESKTOP.md](DESKTOP.md).
+> See [CHANGELOG.md](CHANGELOG.md).
+
+## Features
+
+- **Read & write the vault** — full CRUD for Books, Subjects, Courses,
+  Assignments, Exams, Vocabulary, Research, Cases, Evidence, Scholarships,
+  Internships, Opportunities and Applications. Optional **safe file rename**
+  that rewrites `[[wiki-links]]` so nothing breaks.
+- **Dashboard intelligence** — what's due, overdue, coming up and what changed,
+  computed live from the vault.
+- **Global search (⌘K)** — fuzzy, grouped, with folder paths and highlighting.
+- **Quick Capture** — `book Constitutional Law` → a record, from anywhere.
+- **Calendar & Analytics** — every dated record on one calendar; charts driven
+  entirely by real vault data.
+
 ## Stack
 
 - **Next.js 16** (App Router) · **React 19** · **TypeScript**
@@ -45,9 +63,15 @@ lib/
   obsidian/
     config.ts         # env config (URL, key, TLS)
     client.ts         # reusable REST fns: getFile/getNote/getFolder/getNotes/
-                      #   getNotesByTag/searchByTag/updateFile/createFile/ping
+                      #   getNotesByTag/searchByTag/updateFile/createFile/
+                      #   deleteFile/ping/checkConnection
     frontmatter.ts    # defensive YAML coercion + status/priority vocab mapping
+    markdown.ts       # YAML/frontmatter serialization + filename slugify
+    entities.ts       # entity registry: fields, folders, tags, validation
+    actions.ts        # server actions: create/update/delete/rename/quickCapture
     mappers.ts        # ObsidianNote -> domain entities (book, subject, …)
+    classify.ts       # note → area / href / entity-kind helpers
+    search.ts         # cached global search index
     obsidian-adapter.ts  # implements DataAdapter; computes all aggregates
 ```
 
@@ -83,17 +107,21 @@ Copy `.env.example` → `.env.local` and set:
 ## Project structure
 
 ```
-app/            # routes: dashboard + 9 area pages, layout, loading, 404, icon
+app/            # routes: dashboard, 8 area pages, calendar, analytics, settings
+                #   + layout, loading, error, 404, icon
 components/
-  layout/       # sidebar, topbar, command menu (⌘K), app shell, theme toggle
-  ui/           # shadcn-style primitives (button, card, badge, progress, …)
+  layout/       # sidebar, topbar, command menu (⌘K), app shell, live refresh
+  entities/     # generic create/edit dialog, new-button, record actions, empty state
+  quick-capture/# floating "+" capture
+  calendar/     # month calendar view
+  ui/           # primitives (button, badge, switch, avatar, field, progress-ring…)
   charts/       # Recharts wrappers (area, bar, line, donut, radar)
   motion/       # Framer Motion primitives (stagger, fade, animated number)
   dashboard/    # dashboard-specific widgets
   shared/       # cross-page building blocks (StatCard, Panel, Timeline…)
   settings/     # settings controls
-hooks/          # use-mounted, …
-lib/            # data layer, nav config, area metadata, utils
+hooks/          # use-mounted
+lib/            # data layer, obsidian client, nav config, fuzzy, utils
 types/          # public type barrel (@/types)
 styles/         # notes; tokens live in app/globals.css (Tailwind v4)
 ```
@@ -107,5 +135,5 @@ CSS-first). Highlights: `.surface-card`, `.card-sheen`, `.bg-grid`,
 
 ## Keyboard
 
-- `⌘K` / `Ctrl K` (or `/`) — open the command palette to jump anywhere.
-```
+- `⌘K` / `Ctrl K` (or `/`) — command palette: search every record, jump anywhere,
+  or type a type + title (e.g. `exam Criminal Law`) to create on the spot.

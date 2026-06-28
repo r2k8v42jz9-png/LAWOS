@@ -24,7 +24,6 @@ import type {
   LegalEnglishData,
   ReadingData,
   ResearchData,
-  Scholarship,
   ScholarshipsData,
   SearchRecord,
   SeriesPoint,
@@ -303,7 +302,9 @@ export const obsidianAdapter: DataAdapter = {
       getNote("05 Library/Reading Dashboard.md"),
     ]);
 
-    const books = bookNotes.map(mapBook).sort((a, b) => (a.status === "in_progress" ? -1 : 0));
+    const books = bookNotes
+      .map(mapBook)
+      .sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress"));
     const finished = books.filter((b) => b.status === "done");
     const inProgress = books.filter((b) => b.status === "in_progress");
     const currentBook = [...inProgress].sort((a, b) => b.currentPage - a.currentPage)[0];

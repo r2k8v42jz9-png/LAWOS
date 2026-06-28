@@ -2,13 +2,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EntityDialog } from "@/components/entities/entity-dialog";
 import { hrefForArea } from "@/lib/obsidian/classify";
-import { relativeDay } from "@/lib/utils";
+import { relativeDay, todayISO, isoDay, isoMonthShort } from "@/lib/utils";
 import type { CalendarEvent } from "@/lib/data/types";
 
 const KIND_META: Record<CalendarEvent["kind"], { label: string; color: string }> = {
@@ -22,7 +21,7 @@ const KIND_META: Record<CalendarEvent["kind"], { label: string; color: string }>
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const TODAY_ISO = new Date().toISOString().slice(0, 10);
+const TODAY_ISO = todayISO();
 
 export function CalendarView({ events }: { events: CalendarEvent[] }) {
   const router = useRouter();
@@ -184,10 +183,8 @@ export function CalendarView({ events }: { events: CalendarEvent[] }) {
                         className="flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-lg text-center"
                         style={{ background: `${meta.color}1a`, color: meta.color }}
                       >
-                        <span className="text-[13px] font-semibold leading-none">{new Date(e.date).getDate()}</span>
-                        <span className="text-[9px] uppercase leading-none opacity-80">
-                          {new Date(e.date).toLocaleDateString("en-US", { month: "short" })}
-                        </span>
+                        <span className="text-[13px] font-semibold leading-none">{isoDay(e.date)}</span>
+                        <span className="text-[9px] uppercase leading-none opacity-80">{isoMonthShort(e.date)}</span>
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">{e.title}</p>

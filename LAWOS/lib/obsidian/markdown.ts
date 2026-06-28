@@ -9,7 +9,7 @@
 export type FrontmatterValue = string | number | boolean | string[] | null | undefined;
 export type FrontmatterEntry = [key: string, value: FrontmatterValue];
 
-const NEEDS_QUOTING = /[:#\[\]{}>|*&!%@,"'`]|^\s|\s$|^[?-]/;
+const NEEDS_QUOTING = /[:#\[\]{}>|*&!%@,"'`]|[\n\r\t]|^\s|\s$|^[?&*!|>%@`-]/;
 
 function yamlScalar(v: string | number | boolean): string {
   if (typeof v === "number" || typeof v === "boolean") return String(v);
@@ -17,7 +17,17 @@ function yamlScalar(v: string | number | boolean): string {
   if (s === "") return "";
   // Bare dates / simple tokens stay unquoted; anything risky is double-quoted.
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  if (NEEDS_QUOTING.test(s)) return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  if (NEEDS_QUOTING.test(s)) {
+    // Double-quoted YAML: escape backslash, quote, and control whitespace so a
+    // multi-line value never breaks the frontmatter block.
+    const escaped = s
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\r/g, "\\r")
+      .replace(/\n/g, "\\n")
+      .replace(/\t/g, "\\t");
+    return `"${escaped}"`;
+  }
   return s;
 }
 

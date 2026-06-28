@@ -1,5 +1,4 @@
-import { cn } from "@/lib/utils";
-import { relativeDay, daysUntil } from "@/lib/utils";
+import { cn, relativeDay, daysUntil, isoDay, isoMonthShort } from "@/lib/utils";
 import type { Deadline } from "@/lib/data/types";
 import { AREA_META, PRIORITY_META } from "@/lib/areas";
 
@@ -20,12 +19,8 @@ export function DeadlinesList({ deadlines }: { deadlines: Deadline[] }) {
               className="flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-lg text-center ring-1 ring-inset"
               style={{ background: `${meta.hex}1a`, color: meta.hex }}
             >
-              <span className="text-[13px] font-semibold leading-none">
-                {new Date(dl.date).getDate()}
-              </span>
-              <span className="text-[9px] uppercase leading-none opacity-80">
-                {new Date(dl.date).toLocaleDateString("en-US", { month: "short" })}
-              </span>
+              <span className="text-[13px] font-semibold leading-none">{isoDay(dl.date)}</span>
+              <span className="text-[9px] uppercase leading-none opacity-80">{isoMonthShort(dl.date)}</span>
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">{dl.title}</p>

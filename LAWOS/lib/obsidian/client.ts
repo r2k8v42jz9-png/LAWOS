@@ -11,6 +11,7 @@
  *   getFile, getNote, getFolder, getNotes, getNotesByTag, searchByTag,
  *   updateFile, createFile, ping
  */
+import { cache } from "react";
 import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from "undici";
 import { obsidianConfig, isObsidianConfigured, isExcludedPath, TAG_FOLDERS } from "./config";
 
@@ -30,6 +31,8 @@ export interface ObsidianNote {
   frontmatter: Record<string, unknown>;
   /** All tags (frontmatter + inline). */
   tags: string[];
+  /** Vault paths of notes that link to this one (for safe rename). */
+  backlinks: string[];
   stat: ObsidianStat;
 }
 
@@ -69,7 +72,8 @@ async function api(path: string, init: UndiciRequestInit = {}): Promise<ApiRespo
   try {
     // Use undici's fetch directly so the per-request `dispatcher` (which trusts
     // the plugin's self-signed localhost cert) is honoured — Next.js's wrapped
-    // global fetch strips it.
+    // global fetch strips it. A timeout prevents a hung vault from hanging a
+    // request indefinitely.
     const res = await undiciFetch(`${obsidianConfig.apiUrl}${path}`, {
       ...init,
       headers: {
@@ -77,20 +81,26 @@ async function api(path: string, init: UndiciRequestInit = {}): Promise<ApiRespo
         ...(init.headers ?? {}),
       },
       dispatcher: getDispatcher(),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
+    warnedOnce = false; // recovered — allow the next outage to warn again
     return res;
   } catch (err) {
     if (!warnedOnce) {
       warnedOnce = true;
+      const reason = err instanceof Error && err.name === "TimeoutError" ? "timed out" : "unreachable";
       console.warn(
-        `[obsidian] Could not reach ${obsidianConfig.apiUrl} — is Obsidian running ` +
-          `with the Local REST API plugin enabled? Falling back to empty data.`,
+        `[obsidian] ${obsidianConfig.apiUrl} ${reason} — is Obsidian running with the ` +
+          `Local REST API plugin enabled? Falling back to empty data.`,
         err instanceof Error ? err.message : err
       );
     }
     return null;
   }
 }
+
+/** Per-request read timeout for the Local REST API. */
+const REQUEST_TIMEOUT_MS = 8_000;
 
 /** Encode a vault path for use in a URL while keeping the slash separators. */
 function encodePath(p: string): string {
@@ -112,6 +122,7 @@ function noteFromJson(json: any): ObsidianNote {
     content: json.content ?? "",
     frontmatter: fm,
     tags,
+    backlinks: Array.isArray(json.backlinks) ? json.backlinks : [],
     stat: json.stat ?? { ctime: 0, mtime: 0, size: 0 },
   };
 }
@@ -126,6 +137,37 @@ export async function ping(): Promise<boolean> {
   return !!res && res.ok;
 }
 
+export type ConnectionStatus = "ok" | "no-key" | "unreachable" | "invalid-key";
+
+/**
+ * Diagnose exactly why the vault can't be reached, so the UI can show a precise
+ * message. Root (`/`) needs no auth; `/vault/` does, so a 401 there means the
+ * key is wrong while the server is up.
+ */
+export async function checkConnection(): Promise<ConnectionStatus> {
+  if (!isObsidianConfigured()) return "no-key";
+  const root = await api("/");
+  if (!root) return "unreachable";
+  const vault = await api("/vault/");
+  if (!vault) return "unreachable";
+  if (vault.status === 401 || vault.status === 403) return "invalid-key";
+  return "ok";
+}
+
+/** Human-readable explanation for a connection status. */
+export function connectionMessage(status: ConnectionStatus): string {
+  switch (status) {
+    case "no-key":
+      return "No API key configured. Add OBSIDIAN_API_KEY to .env.local and restart.";
+    case "unreachable":
+      return `Can't reach the Local REST API at ${obsidianConfig.apiUrl}. Open Obsidian and make sure the “Local REST API” plugin is enabled.`;
+    case "invalid-key":
+      return "The Obsidian API key is invalid. Update OBSIDIAN_API_KEY in .env.local to match the plugin's key.";
+    case "ok":
+      return "Connected to your Obsidian vault.";
+  }
+}
+
 /** Raw markdown of a single note, or null if missing/unreachable. */
 export async function getFile(path: string): Promise<string | null> {
   const res = await api(`/vault/${encodePath(path)}`, {
@@ -135,8 +177,12 @@ export async function getFile(path: string): Promise<string | null> {
   return res.text();
 }
 
-/** A single note with parsed frontmatter + tags + stat, or null. */
-export async function getNote(path: string): Promise<ObsidianNote | null> {
+/**
+ * A single note with parsed frontmatter + tags + stat, or null.
+ * Memoized per server request so overlapping reads (dashboard + search index)
+ * hit the REST API at most once per path per render.
+ */
+export const getNote = cache(async (path: string): Promise<ObsidianNote | null> => {
   const res = await api(`/vault/${encodePath(path)}`, {
     headers: { Accept: "application/vnd.olrapi.note+json" },
   });
@@ -146,13 +192,13 @@ export async function getNote(path: string): Promise<ObsidianNote | null> {
   } catch {
     return null;
   }
-}
+});
 
 /**
  * List a folder's immediate children. Subfolders come back with a trailing "/".
  * Returns vault-relative paths. Empty array if the folder is missing/empty.
  */
-export async function getFolder(path: string): Promise<string[]> {
+export const getFolder = cache(async (path: string): Promise<string[]> => {
   const clean = path.replace(/\/$/, "");
   const res = await api(`/vault/${encodePath(clean)}/`);
   if (!res || !res.ok) return [];
@@ -163,7 +209,7 @@ export async function getFolder(path: string): Promise<string[]> {
   } catch {
     return [];
   }
-}
+});
 
 /**
  * Recursively gather every markdown note under a folder as ObsidianNote[].

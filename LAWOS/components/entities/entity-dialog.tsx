@@ -14,7 +14,7 @@ import {
   type FieldDef,
   type FormValues,
 } from "@/lib/obsidian/entities";
-import { createEntity, updateEntity, loadEntity } from "@/lib/obsidian/actions";
+import { createEntity, updateEntity, loadEntity, renameEntityFile } from "@/lib/obsidian/actions";
 
 function emptyValues(fields: FieldDef[]): FormValues {
   const v: FormValues = {};
@@ -42,23 +42,35 @@ export function EntityDialog({
   const [formError, setFormError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [originalTitle, setOriginalTitle] = React.useState("");
+  const [rename, setRename] = React.useState(false);
 
   // Reset / prefill whenever the dialog opens.
   React.useEffect(() => {
     if (!open || !entity) return;
     setErrors({});
     setFormError(null);
+    setRename(false);
     if (mode === "edit" && path) {
       setLoading(true);
       loadEntity(entityKey, path)
-        .then((loaded) => setValues(loaded ?? emptyValues(entity.fields)))
+        .then((loaded) => {
+          const v = loaded ?? emptyValues(entity.fields);
+          setValues(v);
+          setOriginalTitle((v[entity.titleField] ?? "").trim());
+        })
         .finally(() => setLoading(false));
     } else {
       setValues(emptyValues(entity.fields));
+      setOriginalTitle("");
     }
   }, [open, mode, path, entityKey, entity]);
 
   if (!entity) return null;
+
+  // In edit mode, offer an optional safe rename once the title actually changes.
+  const newTitle = (values[entity.titleField] ?? "").trim();
+  const titleChanged = mode === "edit" && newTitle.length > 0 && newTitle !== originalTitle;
 
   const set = (name: string, value: string) => {
     setValues((v) => ({ ...v, [name]: value }));
@@ -79,6 +91,16 @@ export function EntityDialog({
           ? await updateEntity(entityKey, path, values)
           : await createEntity(entityKey, values);
       if (res.ok) {
+        // Optional safe rename of the underlying file (keeps backlinks intact).
+        if (mode === "edit" && path && rename && titleChanged) {
+          const r = await renameEntityFile(entityKey, path, newTitle);
+          if (!r.ok) {
+            setFormError(r.message ?? "Saved, but the file couldn't be renamed.");
+            setSubmitting(false);
+            router.refresh();
+            return;
+          }
+        }
         onOpenChange(false);
         router.refresh();
       } else if (res.errors) {
@@ -148,6 +170,23 @@ export function EntityDialog({
                           />
                         ))}
                       </div>
+                    )}
+
+                    {!loading && titleChanged && (
+                      <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-hairline bg-surface-2/40 px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          checked={rename}
+                          onChange={(e) => setRename(e.target.checked)}
+                          className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">Rename the file to match</span> — the
+                          note is currently <span className="font-mono text-foreground">{originalTitle}.md</span>.
+                          Leave unchecked to keep the filename. Renaming updates any{" "}
+                          <code className="rounded bg-surface-2 px-1 text-[11px]">[[wiki-links]]</code> so nothing breaks.
+                        </span>
+                      </label>
                     )}
 
                     {formError && (
